@@ -20,11 +20,11 @@ $hesk_settings['languages']=array(
 );
 
 // --> Database settings
-$hesk_settings['db_host']='localhost';
-$hesk_settings['db_name']='hesk';
-$hesk_settings['db_user']='test';
-$hesk_settings['db_pass']='test';
-$hesk_settings['db_pfix']='hesk_';
+$hesk_settings['db_host']='us-cdbr-iron-east-02.cleardb.net';
+$hesk_settings['db_name']='heroku_7d702b4f3f91579';
+$hesk_settings['db_user']='b48712b13c8a23';
+$hesk_settings['db_pass']='13bd3750';
+$hesk_settings['db_pfix']='dsi-hesk-demo';
 $hesk_settings['db_vrsn']=0;
 
 
