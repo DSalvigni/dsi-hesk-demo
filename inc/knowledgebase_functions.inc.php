@@ -12,357 +12,341 @@
  */
 
 /* Check if this is a valid include */
-if (!defined('IN_SCRIPT')) {die('Invalid attempt');} 
+if (!defined('IN_SCRIPT')) {
+    die('Invalid attempt');
+}
 
 /*** FUNCTIONS ***/
 
 function hesk_kbArticleContentPreview($txt)
 {
-	global $hesk_settings;
+    global $hesk_settings;
 
-	// Strip HTML tags
-	$txt = strip_tags($txt);
+    // Strip HTML tags
+    $txt = strip_tags($txt);
 
-	// If text is larger than article preview length, shorten it
-	if (hesk_mb_strlen($txt) > $hesk_settings['kb_substrart'])
-	{
-		// The quick but not 100% accurate way (number of chars displayed may be lower than the limit)
-		return hesk_mb_substr($txt, 0, $hesk_settings['kb_substrart']) . '...';
+    // If text is larger than article preview length, shorten it
+    if (hesk_mb_strlen($txt) > $hesk_settings['kb_substrart']) {
+        // The quick but not 100% accurate way (number of chars displayed may be lower than the limit)
+        return hesk_mb_substr($txt, 0, $hesk_settings['kb_substrart']) . '...';
 
-		// If you want a more accurate, but also slower way, use this instead
-		// return hesk_htmlentities( hesk_mb_substr( hesk_html_entity_decode($txt), 0, $hesk_settings['kb_substrart'] ) ) . '...';
-	}
+        // If you want a more accurate, but also slower way, use this instead
+        // return hesk_htmlentities( hesk_mb_substr( hesk_html_entity_decode($txt), 0, $hesk_settings['kb_substrart'] ) ) . '...';
+    }
 
-	return $txt;
+    return $txt;
 } // END hesk_kbArticleContentPreview()
 
 
 function hesk_kbTopArticles($how_many, $index = 1)
 {
-	global $hesk_settings, $hesklang;
+    global $hesk_settings, $hesklang;
 
-	// Index page or KB main page?
-	if ($index)
-	{
-		// Disabled?
-		if ( ! $hesk_settings['kb_index_popart'])
-		{
-			return true;
-		}
+    // Index page or KB main page?
+    if ($index) {
+        // Disabled?
+        if (!$hesk_settings['kb_index_popart']) {
+            return true;
+        }
 
-		// Show title in italics
-		$font_weight = 'i';
-	}
-	else
-	{
-		// Disabled?
-		if ( ! $hesk_settings['kb_popart'])
-		{
-			return true;
-		}
+        // Show title in italics
+        $font_weight = 'i';
+    } else {
+        // Disabled?
+        if (!$hesk_settings['kb_popart']) {
+            return true;
+        }
 
-		// Show title in bold
-		$font_weight = 'b';
+        // Show title in bold
+        $font_weight = 'b';
     }
+    ?>
 
-    /* Get list of articles from the database */
-    $res = hesk_dbQuery("SELECT `t1`.`id`,`t1`.`subject`,`t1`.`views` FROM `".hesk_dbEscape($hesk_settings['db_pfix'])."kb_articles` AS `t1`
-                        LEFT JOIN `".hesk_dbEscape($hesk_settings['db_pfix'])."kb_categories` AS `t2` ON `t1`.`catid` = `t2`.`id`
-                        WHERE `t1`.`type`='0' AND `t2`.`type`='0'
-                        ORDER BY `t1`.`sticky` DESC, `t1`.`views` DESC, `t1`.`art_order` ASC LIMIT ".intval($how_many));
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h4 class="text-left"><?php echo $hesklang['popart_no_colon']; ?></h4>
+        </div>
+        <table border="0" width="100%" class="table table-striped table-fixed">
+            <thead>
+            <tr>
+                <?php
+                /* Get list of articles from the database */
+                $res = hesk_dbQuery("SELECT `t1`.`id`,`t1`.`subject`,`t1`.`views`,`t1`.`sticky` FROM `" . hesk_dbEscape($hesk_settings['db_pfix']) . "kb_articles` AS `t1`
+			LEFT JOIN `" . hesk_dbEscape($hesk_settings['db_pfix']) . "kb_categories` AS `t2` ON `t1`.`catid` = `t2`.`id`
+			WHERE `t1`.`type`='0' AND `t2`.`type`='0'
+			ORDER BY `t1`.`sticky` DESC, `t1`.`views` DESC, `t1`.`art_order` ASC LIMIT " . intval($how_many));
 
-    /* If no results found end here */
-    if (hesk_dbNumRows($res) == 0)
-    {
-        echo '<p><i>'.$hesklang['noa'].'</i><br />&nbsp;</p>';
-        return true;
-    }
+                /* Show number of views? */
+                if ($hesk_settings['kb_views'] && hesk_dbNumRows($res) != 0) {
+                    echo '<th class="col-xs-8 col-sm-9">&nbsp;</th>';
+                    echo '<th class="col-xs-4 col-sm-3"><i>' . $hesklang['views'] . '</i></th>';
+                }
+                ?>
+            </tr>
+            </thead>
+            <tbody>
+            <?php
+            /* If no results found end here */
+            if (hesk_dbNumRows($res) == 0) {
+                $colspan = '';
+                if (!$hesk_settings['kb_views']) {
+                    $colspan = 'colspan="2"';
+                }
+                echo '<tr><td ' . $colspan . '><i>' . $hesklang['noa'] . '</i></td></tr>';
+            }
 
-    // This is used to count required empty lines for index page
-    if ( ! isset($hesk_settings['kb_spacing']))
-    {
-        $hesk_settings['kb_spacing'] = 0;
-    }
+            /* We have some results, print them out */
+            $colspan = '';
+            if (!$hesk_settings['kb_views']) {
+                $colspan = 'colspan="2"';
+            }
 
-    // Print a line for spacing if we don't show popular articles
-    if ( ! $index)
-    {
-        echo '<hr />';
-    }
-	?>
+            // Remember what articles are printed for "Top" so we don't print them again in "Latest"
+            $hesk_settings['kb_top_articles_printed'] = array();
 
-    <table border="0" width="100%">
-	<tr>
-	<td>&raquo; <<?php echo $font_weight; ?>><?php echo $hesklang['popart']; ?></<?php echo $font_weight; ?>></td>
+            while ($article = hesk_dbFetchAssoc($res)) {
+                $hesk_settings['kb_spacing']--;
 
-	<?php
-    /* Show number of views? */
-	if ($hesk_settings['kb_views'])
-	{
-		echo '<td style="text-align:right"><i>' . $hesklang['views'] . '</i></td>';
-	}
-	?>
+                $hesk_settings['kb_top_articles_printed'][] = $article['id'];
 
-	</tr>
-	</table>
+                $icon = 'fa fa-file';
+                $style = '';
 
-    <div align="center">
-    <table border="0" cellspacing="1" cellpadding="3" width="100%">
-    <?php
-    // Remember what articles are printed for "Top" so we don't print them again in "Latest"
-    $hesk_settings['kb_top_articles_printed'] = array();
+                if ($article['sticky']) {
+                    $icon = 'glyphicon glyphicon-pushpin';
+                    $style = 'style="color: #FF0000"';
+                }
 
-	while ($article = hesk_dbFetchAssoc($res))
-	{
-        $hesk_settings['kb_spacing']--;
-
-        $hesk_settings['kb_top_articles_printed'][] = $article['id'];
-
-		echo '
-		<tr>
-		<td>
-		<table border="0" width="100%" cellspacing="0" cellpadding="0">
-		<tr>
-		<td width="1" valign="top"><img src="img/article_text.png" width="16" height="16" border="0" alt="" style="vertical-align:middle" /></td>
-		<td valign="top">&nbsp;<a href="knowledgebase.php?article=' . $article['id'] . '">' . $article['subject'] . '</a></td>
-		';
-
-		if ($hesk_settings['kb_views'])
-		{
-			echo '<td valign="top" style="text-align:right" width="200">' . $article['views'] . '</td>';
-		}
-
-		echo '
-		</tr>
-		</table>
-		</td>
-		</tr>
-		';
-	}
-	?>
-
-    </table>
+                echo '
+                <tr>
+                    <td class="col-xs-8 col-sm-9" ' . $colspan . '>
+                        <i class="' . $icon . '" ' . $style . '></i> <a href="knowledgebase.php?article=' . $article['id'] . '">' . $article['subject'] . '</a>
+                    </td>
+                    ';
+                if ($hesk_settings['kb_views']) {
+                    echo '<td class="col-xs-4 col-sm-3">' . $article['views'] . '</td>';
+                }
+                echo '</tr>';
+            }
+            ?>
+            </tbody>
+        </table>
     </div>
-
-    &nbsp;
-
     <?php
+
+    return true;
 } // END hesk_kbTopArticles()
 
 
 function hesk_kbLatestArticles($how_many, $index = 1)
 {
-	global $hesk_settings, $hesklang;
+    global $hesk_settings, $hesklang;
 
-	// Index page or KB main page?
-	if ($index)
-	{
-		// Disabled?
-		if ( ! $hesk_settings['kb_index_latest'])
-		{
-			return true;
-		}
-
-		// Show title in italics
-		$font_weight = 'i';
-	}
-	else
-	{
-		// Disabled?
-		if ( ! $hesk_settings['kb_latest'])
-		{
-			return true;
-		}
-
-		// Show title in bold
-		$font_weight = 'b';
-    }
-
-    // Don't include articles that have already been printed under "Top" articles
-    $sql_top = '';
-    if (isset($hesk_settings['kb_top_articles_printed']) && count($hesk_settings['kb_top_articles_printed']))
-    {
-        $sql_top = ' AND `t1`.`id` NOT IN ('.implode(',', $hesk_settings['kb_top_articles_printed']).')';
-    }
-
-    /* Get list of articles from the database */
-    $res = hesk_dbQuery("SELECT `t1`.`id`,`t1`.`subject`,`t1`.`dt` FROM `".hesk_dbEscape($hesk_settings['db_pfix'])."kb_articles` AS `t1`
-                        LEFT JOIN `".hesk_dbEscape($hesk_settings['db_pfix'])."kb_categories` AS `t2` ON `t1`.`catid` = `t2`.`id`
-                        WHERE `t1`.`type`='0' AND `t2`.`type`='0' {$sql_top}
-                        ORDER BY `t1`.`dt` DESC LIMIT ".intval($how_many));
-
-    // Print a line for spacing if we don't show popular articles
-    if ( ! $index && ! $hesk_settings['kb_popart'])
-    {
-        echo '<hr />';
-    }
-
-    // If no results found end here
-    if (hesk_dbNumRows($res) == 0)
-    {
-        if ( ! $hesk_settings['kb_popart'])
-        {
-            echo '<p><i>'.$hesklang['noa'].'</i><br />&nbsp;</p>';
+    // Index page or KB main page?
+    if ($index) {
+        // Disabled?
+        if (!$hesk_settings['kb_index_latest']) {
+            return true;
         }
-        return true;
+
+        // Show title in italics
+        $font_weight = 'i';
+    } else {
+        // Disabled?
+        if (!$hesk_settings['kb_latest']) {
+            return true;
+        }
+
+        // Show title in bold
+        $font_weight = 'b';
+
+        // Print a line for spacing if we don't show popular articles
+        if (!$hesk_settings['kb_popart']) {
+            echo '<hr />';
+        }
     }
+    ?>
 
-    // This is used to count required empty lines for index page
-    if ( ! isset($hesk_settings['kb_spacing']))
-    {
-        $hesk_settings['kb_spacing'] = 0;
-    }
-	?>
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h4 class="text-left"><?php echo $hesklang['latart_no_colon']; ?></h4>
+        </div>
+        <table class="table table-striped table-fixed">
+            <thead>
+            <tr>
+                <?php
+                // Don't include articles that have already been printed under "Top" articles
+                $sql_top = '';
+                if (isset($hesk_settings['kb_top_articles_printed']) && count($hesk_settings['kb_top_articles_printed'])) {
+                    $sql_top = ' AND `t1`.`id` NOT IN ('.implode(',', $hesk_settings['kb_top_articles_printed']).')';
+                }
 
-    <table border="0" width="100%">
-	<tr>
-	<td>&raquo; <<?php echo $font_weight; ?>><?php echo $hesklang['latart']; ?></<?php echo $font_weight; ?>></td>
+                $colspan = '';
+                if (!$hesk_settings['kb_date']) {
+                    $colspan = 'colspan="2"';
+                }
+                /* Get list of articles from the database */
+                $res = hesk_dbQuery("SELECT `t1`.* FROM `" . hesk_dbEscape($hesk_settings['db_pfix']) . "kb_articles` AS `t1`
+                LEFT JOIN `" . hesk_dbEscape($hesk_settings['db_pfix']) . "kb_categories` AS `t2` ON `t1`.`catid` = `t2`.`id`
+                WHERE `t1`.`type`='0' AND `t2`.`type`='0' {$sql_top}
+                ORDER BY `t1`.`dt` DESC LIMIT " . intval($how_many));
 
-	<?php
-    /* Show number of views? */
-	if ($hesk_settings['kb_date'])
-	{
-		echo '<td style="text-align:right"><i>' . $hesklang['dta'] . '</i></td>';
-	}
-	?>
+                /* Show number of views? */
+                if (hesk_dbNumRows($res) != 0) {
+                    echo '<th class="col-xs-9" ' . $colspan . '>&nbsp;</th>';
+                    if ($hesk_settings['kb_date']) {
+                        echo '<th class="col-xs-3"><i>' . $hesklang['dta'] . '</i></th>';
+                    }
+                }
+                ?>
+            </tr>
+            </thead>
+            <tbody>
+            <?php
 
-	</tr>
-	</table>
+            /* If no results found end here */
+            if (hesk_dbNumRows($res) == 0) {
+                $colspan = '';
+                if ($hesk_settings['kb_date']) {
+                    $colspan = 'colspan="2"';
+                }
+                echo '<td ' . $colspan . '><i>' . $hesklang['noa'] . '</i></td>';
+            }
 
-    <div align="center">
-    <table border="0" cellspacing="1" cellpadding="3" width="100%">
-    <?php
+            /* We have some results, print them out */
+            $colspan = $hesk_settings['kb_date'] ? '' : 'colspan="2"';
+            while ($article = hesk_dbFetchAssoc($res)) {
+                $hesk_settings['kb_spacing']--;
+                $icon = 'fa fa-file';
+                $style = '';
 
-	while ($article = hesk_dbFetchAssoc($res))
-	{
-        $hesk_settings['kb_spacing']--;
+                if ($article['sticky']) {
+                    $icon = 'glyphicon glyphicon-pushpin';
+                    $style = 'style="color: #FF0000"';
+                }
 
-		echo '
-		<tr>
-		<td>
-		<table border="0" width="100%" cellspacing="0" cellpadding="0">
-		<tr>
-		<td width="1" valign="top"><img src="img/article_text.png" width="16" height="16" border="0" alt="" style="vertical-align:middle" /></td>
-		<td valign="top">&nbsp;<a href="knowledgebase.php?article=' . $article['id'] . '">' . $article['subject'] . '</a></td>
-		';
-
-		if ($hesk_settings['kb_date'])
-		{
-			echo '<td valign="top" style="text-align:right" width="200">' . hesk_date($article['dt'], true) . '</td>';
-		}
-
-		echo '
-		</tr>
-		</table>
-		</td>
-		</tr>
-		';
-	}
-	?>
-
-    </table>
+                echo '
+                <tr>
+                    <td class="col-xs-9" ' . $colspan . '>
+                        <i class="' . $icon . '" ' . $style . '></i> <a href="knowledgebase.php?article=' . $article['id'] . '">' . $article['subject'] . '</a>
+                    </td>';
+                if ($hesk_settings['kb_date']) {
+                    echo '<td class="col-xs-3">' . hesk_date($article['dt'], true) . '</td>';
+                }
+                echo '</tr>';
+            } ?>
+            </tbody>
+        </table>
     </div>
 
-    &nbsp;
-
     <?php
+
+    return true;
 } // END hesk_kbLatestArticles()
 
 
 function hesk_kbSearchLarge($admin = '')
 {
-	global $hesk_settings, $hesklang;
+    global $hesk_settings, $hesklang;
 
-	$action = 'knowledgebase.php';
+    $action = 'knowledgebase.php';
+    if ($admin) {
+        if (!$hesk_settings['kb_search']) {
+            return '';
+        }
+        $action = 'knowledgebase_private.php';
+    } elseif ($hesk_settings['kb_search'] != 2) {
+        return '';
+    }
 
-	if ($admin)
-	{
-		if ( ! $hesk_settings['kb_search'])
-		{
-			return '';
-		}
-		$action = 'knowledgebase_private.php';
-	}
-	elseif ($hesk_settings['kb_search'] != 2)
-	{
-		return '';
-	}
-	?>
-	<br />
+    ?>
 
-	<div style="text-align:center">
-		<form action="<?php echo $action; ?>" method="get" style="display: inline; margin: 0;" name="searchform">
-		<span class="largebold"><?php echo $hesklang['ask']; ?></span>
-        <input type="text" name="search" class="searchfield" />
-		<input type="submit" value="<?php echo $hesklang['search']; ?>" title="<?php echo $hesklang['search']; ?>" class="searchbutton" /><br />
-		</form>
-	</div>
+    <div style="text-align:center">
+        <form role="form" action="<?php echo $action; ?>" method="get" style="display: inline; margin: 0;"
+              name="searchform">
+            <div class="input-group">
+                <input type="text" class="form-control"
+                       placeholder="<?php echo htmlspecialchars($hesklang['search_the_knowledgebase']); ?>"
+                       name="search">
+				<span class="input-group-btn">
+					<button class="btn btn-default" type="submit" value="<?php echo $hesklang['search']; ?>"
+                            title="<?php echo $hesklang['search']; ?>"><?php echo $hesklang['search']; ?></button>
+				</span>
+            </div>
+        </form>
+    </div>
 
-	<br />
+    <br/>
 
-	<!-- START KNOWLEDGEBASE SUGGEST -->
-		<div id="kb_suggestions" style="display:none">
-			<img src="<?php echo HESK_PATH; ?>img/loading.gif" width="24" height="24" alt="" border="0" style="vertical-align:text-bottom" /> <i><?php echo $hesklang['lkbs']; ?></i>
-		</div>
+    <!-- START KNOWLEDGEBASE SUGGEST -->
+    <div id="kb_suggestions" style="display:none">
+        <img src="<?php echo HESK_PATH; ?>img/loading.gif" width="24" height="24" alt="" border="0"
+             style="vertical-align:text-bottom"/> <i><?php echo $hesklang['lkbs']; ?></i>
+    </div>
 
-		<script language="Javascript" type="text/javascript"><!--
-		hesk_suggestKBsearch(<?php echo $admin; ?>);
-		//-->
-		</script>
-	<!-- END KNOWLEDGEBASE SUGGEST -->
+    <script language="Javascript" type="text/javascript"><!--
+        hesk_suggestKBsearch(<?php echo $admin; ?>);
+        //-->
+    </script>
+    <!-- END KNOWLEDGEBASE SUGGEST -->
 
-	<br />
+    <br/>
 
-	<?php
+    <?php
 } // END hesk_kbSearchLarge()
 
 
 function hesk_kbSearchSmall()
 {
-	global $hesk_settings, $hesklang;
+    global $hesk_settings, $hesklang;
 
-	if ($hesk_settings['kb_search'] != 1)
-	{
-		return '';
-	}
+    if ($hesk_settings['kb_search'] != 1) {
+        return '';
+    }
     ?>
 
-	<td style="text-align:right" valign="top" width="300">
-		<div style="display:inline;">
-			<form action="knowledgebase.php" method="get" style="display: inline; margin: 0;">
-			<input type="text" name="search" class="searchfield sfsmall" />
-			<input type="submit" value="<?php echo $hesklang['search']; ?>" title="<?php echo $hesklang['search']; ?>" class="searchbutton sbsmall" />
-			</form>
-		</div>
-	</td>
+    <td class="text-right" valign="top" width="300">
+        <div style="display:inline;margin-left:auto;margin-right:auto">
+            <form action="knowledgebase.php" method="get" class="form-inline" style="display: inline; margin: 0;">
+                <div class="input-group" style="margin: 0 15px">
+                    <input type="text" name="search" class="form-control">
+                    <span class="input-group-btn">
+                        <button class="btn btn-default" type="submit"
+                                value="<?php echo $hesklang['search_the_knowledgebase']; ?>"
+                                title="<?php echo $hesklang['search_the_knowledgebase']; ?>">
+                            <?php echo $hesklang['search_the_knowledgebase']; ?>
+                        </button>
+                    </span>
+                </div>
+            </form>
+            <br><br>
+        </div>
+    </td>
 
-	<?php
+    <?php
 } // END hesk_kbSearchSmall()
 
 
 function hesk_detect_bots()
 {
-	$botlist = array('googlebot', 'msnbot', 'slurp', 'alexa', 'teoma', 'froogle',
-	'gigabot', 'inktomi', 'looksmart', 'firefly', 'nationaldirectory',
-	'ask jeeves', 'tecnoseek', 'infoseek', 'webfindbot', 'girafabot',
-	'crawl', 'www.galaxy.com', 'scooter', 'appie', 'fast', 'webbug', 'spade', 'zyborg', 'rabaz',
-	'baiduspider', 'feedfetcher-google', 'technoratisnoop', 'rankivabot',
-	'mediapartners-google', 'crawler', 'spider', 'robot', 'bot/', 'bot-','voila');
+    $botlist = array('googlebot', 'msnbot', 'slurp', 'alexa', 'teoma', 'froogle',
+        'gigabot', 'inktomi', 'looksmart', 'firefly', 'nationaldirectory',
+        'ask jeeves', 'tecnoseek', 'infoseek', 'webfindbot', 'girafabot',
+        'crawl', 'www.galaxy.com', 'scooter', 'appie', 'fast', 'webbug', 'spade', 'zyborg', 'rabaz',
+        'baiduspider', 'feedfetcher-google', 'technoratisnoop', 'rankivabot',
+        'mediapartners-google', 'crawler', 'spider', 'robot', 'bot/', 'bot-', 'voila');
 
-	if ( ! isset($_SERVER['HTTP_USER_AGENT']))
-    {
-    	return false;
+    if (!isset($_SERVER['HTTP_USER_AGENT'])) {
+        return false;
     }
 
     $ua = strtolower($_SERVER['HTTP_USER_AGENT']);
 
-	foreach ($botlist as $bot)
-    {
-    	if (strpos($ua,$bot) !== false)
-        {
-        	return true;
+    foreach ($botlist as $bot) {
+        if (strpos($ua, $bot) !== false) {
+            return true;
         }
     }
 
-	return false;
+    return false;
 } // END hesk_detect_bots()

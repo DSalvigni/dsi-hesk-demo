@@ -1,6 +1,6 @@
 Hello,
 
-A new note has been added to ticket "%%SUBJECT%%" that is currently assigned to you.
+A new note has been added to ticket "%%SUBJECT%%".
 
 Note by %%NAME%%:
 

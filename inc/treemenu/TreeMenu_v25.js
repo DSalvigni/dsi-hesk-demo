@@ -204,7 +204,7 @@ function arrayCopy(input)
                 */
                         var gifname  = nodes[i].n.length && this.doesMenu() && nodes[i].isDynamic ? (expanded ? 'minus' : 'plus') : 'branch';
                         var iconName = expanded && nodes[i].expandedIcon ? nodes[i].expandedIcon : nodes[i].icon;
-                        var iconimg  = nodes[i].icon ? this.stringFormat('<img src="{0}/{1}" align="top" id="icon_{2}">', this.iconpath, iconName, layerID) : '';
+                        var iconimg  = nodes[i].icon ? this.stringFormat('<i class="fa {1}" id="icon_{2}"></i>', this.iconpath, iconName, layerID) : '';
 
                         /**
                         * Add event handlers

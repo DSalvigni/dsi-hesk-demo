@@ -12,13 +12,12 @@
  */
 
 /* Check if this is a valid include */
-if (!defined('IN_SCRIPT')) {die('Invalid attempt');} 
+if (!defined('IN_SCRIPT')) {
+    die('Invalid attempt');
+}
 
 // Load custom fields
 require_once(HESK_PATH . 'inc/custom_fields.inc.php');
-
-// Load statuses
-require_once(HESK_PATH . 'inc/statuses.inc.php');
 
 // This SQL code will be used to retrieve results
 $sql_final = "SELECT
@@ -45,50 +44,46 @@ LEFT(`message`, 400) AS `message`,
 `lastreplier`,
 `replierid`,
 `archive`,
-`locked`
+`locked`,
+`merged`,
+`due_date`
 ";
 
-foreach ($hesk_settings['custom_fields'] as $k=>$v)
-{
-	if ($v['use'])
-	{
-		$sql_final .= ", `".$k."`";
-	}
+foreach ($hesk_settings['custom_fields'] as $k => $v) {
+    if ($v['use']) {
+        $sql_final .= ", `" . $k . "`";
+    }
 }
 
-$sql_final.= " FROM `".hesk_dbEscape($hesk_settings['db_pfix'])."tickets` WHERE ";
+$sql_final .= " FROM `" . hesk_dbEscape($hesk_settings['db_pfix']) . "tickets` WHERE ";
 
 // This code will be used to count number of results
-$sql_count = "SELECT COUNT(*) FROM `".hesk_dbEscape($hesk_settings['db_pfix'])."tickets` WHERE ";
+$sql_count = "SELECT COUNT(*) FROM `" . hesk_dbEscape($hesk_settings['db_pfix']) . "tickets` WHERE ";
 
 // This is common SQL for both queries
 $sql = "";
 
 // Some default settings
-$archive = array(1=>0,2=>0);
-$s_my = array(1=>1,2=>1);
-$s_ot = array(1=>1,2=>1);
-$s_un = array(1=>1,2=>1);
+$archive = array(1 => 0, 2 => 0);
+$s_my = array(1 => 1, 2 => 1);
+$s_ot = array(1 => 1, 2 => 1);
+$s_un = array(1 => 1, 2 => 1);
 
 // --> TICKET CATEGORY
-$category = intval( hesk_GET('category', 0) );
+$category = intval(hesk_GET('category', 0));
 
 // Make sure user has access to this category
-if ($category && hesk_okCategory($category, 0) )
-{
-	$sql .= " `category`='{$category}' ";
-}
-// No category selected, show only allowed categories
-else
-{
-	$sql .= hesk_myCategories();
+if ($category && hesk_okCategory($category, 0)) {
+    $sql .= " `category`='{$category}' ";
+} // No category selected, show only allowed categories
+else {
+    $sql .= hesk_myCategories();
 }
 
 // Show only tagged tickets?
-if ( ! empty($_GET['archive']) )
-{
-	$archive[1]=1;
-	$sql .= " AND `archive`='1' ";
+if (!empty($_GET['archive'])) {
+    $archive[1] = 1;
+    $sql .= " AND `archive`='1' ";
 }
 
 // Ticket owner preferences
@@ -96,52 +91,57 @@ $fid = 1;
 require(HESK_PATH . 'inc/assignment_search.inc.php');
 
 // --> TICKET STATUS
-$status = $hesk_settings['statuses'];
-
+$statuses = mfh_getAllStatuses();
+$totalStatuses = 0;
+$possible_status = array();
+foreach ($statuses as $row) {
+    $possible_status[$row['ID']] = $row['ID'];
+    $totalStatuses++;
+}
+$status = $possible_status;
 // Process statuses unless overridden with "s_all" variable
-if ( ! hesk_GET('s_all') )
-{
-	foreach ($status as $k => $v)
-	{
-		if (empty($_GET['s'.$k]))
-		{
-			unset($status[$k]);
-	    }
-	}
+if (!hesk_GET('s_all')) {
+    foreach ($status as $k => $v) {
+        if (empty($_GET['s' . $v])) {
+            unset($status[$k]);
+        }
+    }
 }
 
-// How many statuses are we pulling out of the database?
+// How many statuses are we pulling out of the database?\
 $tmp = count($status);
 
 // Do we need to search by status?
-if ( $tmp < count($hesk_settings['statuses']) )
-{
-	// If no statuses selected, show default (all except RESOLVED)
-	if ($tmp == 0)
-	{
-		$status = $hesk_settings['statuses'];
-		unset($status[3]);
-	}
+if ($tmp < $totalStatuses) {
+    // If no statuses selected, show default (all except RESOLVED)
+    if ($tmp == 0) {
+        $status = $possible_status;
+        foreach ($statuses as $row) {
+            if ($row['IsClosed'] == 0) {
+                continue;
+            }
 
-	// Add to the SQL
-	$sql .= " AND `status` IN ('" . implode("','", array_keys($status) ) . "') ";
+            unset($status[$row['ID']]);
+        }
+    }
+
+    // Add to the SQL
+    $sql .= " AND `status` IN ('" . implode("','", array_keys($status)) . "') ";
 }
 
 // --> TICKET PRIORITY
 $possible_priority = array(
-0 => 'CRITICAL',
-1 => 'HIGH',
-2 => 'MEDIUM',
-3 => 'LOW',
+    0 => 'CRITICAL',
+    1 => 'HIGH',
+    2 => 'MEDIUM',
+    3 => 'LOW',
 );
 
 $priority = $possible_priority;
 
-foreach ($priority as $k => $v)
-{
-	if (empty($_GET['p'.$k]))
-    {
-    	unset($priority[$k]);
+foreach ($priority as $k => $v) {
+    if (empty($_GET['p' . $k])) {
+        unset($priority[$k]);
     }
 }
 
@@ -149,15 +149,12 @@ foreach ($priority as $k => $v)
 $tmp = count($priority);
 
 // Create the SQL based on the number of priorities we need
-if ($tmp == 0 || $tmp == 4)
-{
-	// Nothing or all selected, no need to modify the SQL code
+if ($tmp == 0 || $tmp == 4) {
+    // Nothing or all selected, no need to modify the SQL code
     $priority = $possible_priority;
-}
-else
-{
-	// A custom selection of priorities
-	$sql .= " AND `priority` IN ('" . implode("','", array_keys($priority) ) . "') ";
+} else {
+    // A custom selection of priorities
+    $sql .= " AND `priority` IN ('" . implode("','", array_keys($priority)) . "') ";
 }
 
 // That's all the SQL we need for count
@@ -168,8 +165,7 @@ $sql = $sql_final . $sql;
 require(HESK_PATH . 'inc/prepare_ticket_search.inc.php');
 
 // List tickets?
-if (!isset($_SESSION['hide']['ticket_list']))
-{
-	$href = 'show_tickets.php';
-	require(HESK_PATH . 'inc/ticket_list.inc.php');
+if (!isset($_SESSION['hide']['ticket_list'])) {
+    $href = 'show_tickets.php';
+    require(HESK_PATH . 'inc/ticket_list.inc.php');
 }

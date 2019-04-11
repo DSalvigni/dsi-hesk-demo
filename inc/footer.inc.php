@@ -43,11 +43,12 @@ if (defined('AUTOFOCUS'))
 <?php
 }
 
-// Users online
-if (defined('SHOW_ONLINE'))
-{
-	hesk_printOnline();
+// The closing div here is to close the content area on each page. Annoying, but necessary.
+if (defined('ADMIN_PAGE')) {
+	echo '
+	</div>';
 }
+
 
 /*******************************************************************************
 The code below handles HESK licensing. Removing or modifying this code without
@@ -63,21 +64,7 @@ khlbHAgRGVzayBTb2Z0d2FyZTwvYT4gPGI+SEVTSzwvYj4sIGluIHBhcnRuZXJzaGlwIHdpdGggPGEga
 HJlZj0iaHR0cHM6Ly93d3cuc3lzYWlkLmNvbS8/dXRtX3NvdXJjZT1IZXNrJmFtcDt1dG1fbWVkaXVtP
 WNwYyZhbXA7dXRtX2NhbXBhaWduPUhlc2tQcm9kdWN0X1RvX0hQIj5TeXNBaWQgVGVjaG5vbG9naWVzP
 C9hPjwvc3Bhbj48L3A+',"\120");
-/*******************************************************************************
-END LICENSE CODE
-*******************************************************************************/
 
-echo '
-                </td>
-            </tr>
-        </table>
-    </div>';
-
-include (HESK_PATH . 'footer.txt');
-
-echo '
-</body>
-</html>
-';
+include(HESK_PATH . 'footer.txt');
 
 $hesk_settings['security_cleanup']('exit');

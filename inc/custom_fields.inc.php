@@ -39,7 +39,7 @@ function hesk_load_custom_fields($category=0, $use_cache=1)
 
 	// Do we have a cached version available
 	$cache_dir = dirname(dirname(__FILE__)).'/'.$hesk_settings['cache_dir'].'/';
-    $cache_file = $cache_dir . 'cf_' . sha1($hesk_settings['language']).'.cache.php';
+	$cache_file = $cache_dir . 'cf_' . sha1($hesk_settings['language']).'.cache.php';
 
 	if ($use_cache && file_exists($cache_file))
 	{
@@ -76,6 +76,12 @@ function hesk_load_custom_fields($category=0, $use_cache=1)
 
 		// Decode options
 		$row['value'] = json_decode($row['value'], true);
+
+		// Description
+        $descriptions = strlen($row['mfh_description']) ? json_decode($row['mfh_description'], true) : array();
+        $row['mfh_description'] = (isset($descriptions[$hesk_settings['language']])) ?
+            $descriptions[$hesk_settings['language']] :
+            reset($descriptions);
 
 		// Add to custom_fields array
 		$hesk_settings['custom_fields'][$id] = $row;
@@ -131,6 +137,8 @@ function hesk_custom_field_type($type)
 			return $hesklang['date'];
 		case 'hidden':
 			return $hesklang['sch'];
+		case 'readonly':
+			return $hesklang['readonly'];
 		default:
 			return false;
 	}

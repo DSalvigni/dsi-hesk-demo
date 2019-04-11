@@ -12,54 +12,54 @@
  */
 
 /* Check if this is a valid include */
-if (!defined('IN_SCRIPT')) {die('Invalid attempt');} 
+if (!defined('IN_SCRIPT')) {
+    die('Invalid attempt');
+}
 
 /***************************
-Function hesk_uploadFiles()
-***************************/
-function hesk_uploadFile($i)
+ * Function hesk_uploadFiles()
+ ***************************/
+function hesk_uploadFile($i, $isTicket = true)
 {
-	global $hesk_settings, $hesklang, $trackingID, $hesk_error_buffer;
+    global $hesk_settings, $hesklang, $trackingID, $hesk_error_buffer, $modsForHesk_settings;
 
-	/* Return if name is empty */
-	if (empty($_FILES['attachment']['name'][$i])) {return '';}
+    /* Return if name is empty */
+    $name = $i == -1
+        ? $_FILES['attachment']['name']
+        : $_FILES['attachment']['name'][$i];
+    if (empty($name)) {
+        return '';
+    }
+
 
     /* Parse the name */
-	$file_realname = hesk_cleanFileName($_FILES['attachment']['name'][$i]);
+    $file_realname = hesk_cleanFileName($name);
 
-	/* Check file extension */
-	$ext = strtolower(strrchr($file_realname, "."));
-	if ( ! in_array($ext,$hesk_settings['attachments']['allowed_types']))
-	{
+    /* Check file extension */
+    $ext = strtolower(strrchr($file_realname, "."));
+    if (!in_array($ext, $hesk_settings['attachments']['allowed_types'])) {
         return hesk_fileError(sprintf($hesklang['type_not_allowed'], $ext, $file_realname));
-	}
-
-	/* Check file size */
-	if ($_FILES['attachment']['size'][$i] > $hesk_settings['attachments']['max_size'])
-	{
-	    return hesk_fileError(sprintf($hesklang['file_too_large'], $file_realname));
-	}
-	else
-	{
-	    $file_size = $_FILES['attachment']['size'][$i];
-	}
-
-	/* Generate a random file name */
-	$useChars='AEUYBDGHJLMNPQRSTVWXZ123456789';
-	$tmp = uniqid();
-	for($j=1;$j<10;$j++)
-	{
-	    $tmp .= $useChars{mt_rand(0,29)};
-	}
-
-    if (defined('KB'))
-    {
-    	$file_name = substr(md5($tmp . $file_realname), 0, 200) . $ext;
     }
-    else
-    {
-    	$file_name = substr($trackingID . '_' . md5($tmp . $file_realname), 0, 200) . $ext;
+
+    /* Check file size */
+    $size = $i == -1
+        ? $_FILES['attachment']['size']
+        : $_FILES['attachment']['size'][$i];
+    if ($size > $hesk_settings['attachments']['max_size']) {
+        return hesk_fileError(sprintf($hesklang['file_too_large'], $file_realname));
+    } else {
+        $file_size = $size;
     }
+
+    /* Generate a random file name */
+    $useChars = 'AEUYBDGHJLMNPQRSTVWXZ123456789';
+    $tmp = uniqid();
+    for ($j = 1; $j < 10; $j++) {
+        $tmp .= $useChars{mt_rand(0, 29)};
+    }
+
+
+    $file_name = substr(md5($tmp . $file_realname), 0, 200) . $ext;
 
     // Does the temporary file exist? If not, probably server-side configuration limits have been reached
     // Uncomment this for debugging purposes
@@ -70,43 +70,79 @@ function hesk_uploadFile($i)
     }
     */
 
-	/* If upload was successful let's create the headers */
-	if ( ! move_uploaded_file($_FILES['attachment']['tmp_name'][$i], dirname(dirname(__FILE__)).'/'.$hesk_settings['attach_dir'].'/'.$file_name))
-	{
-	    return hesk_fileError($hesklang['cannot_move_tmp']);
-	}
+    /* If upload was successful let's create the headers */
+    $directory = $hesk_settings['attach_dir'];
+    if (!$isTicket) {
+        $directory = $modsForHesk_settings['kb_attach_dir'];
+    }
+    $file_to_move = $i == -1
+        ? $_FILES['attachment']['tmp_name']
+        : $_FILES['attachment']['tmp_name'][$i];
+    if (!move_uploaded_file($file_to_move, dirname(dirname(__FILE__)) . '/' . $directory . '/' . $file_name)) {
+        return hesk_fileError($hesklang['cannot_move_tmp']);
+    }
 
-	$info = array(
-	    'saved_name'=> $file_name,
-	    'real_name' => $file_realname,
-	    'size'      => $file_size
-	);
+    $info = array(
+        'saved_name' => $file_name,
+        'real_name' => $file_realname,
+        'size' => $file_size
+    );
 
-	return $info;
+    return $info;
 } // End hesk_uploadFile()
 
 
 function hesk_fileError($error)
 {
-	global $hesk_settings, $hesklang, $trackingID;
+    global $hesk_settings, $hesklang, $trackingID;
     global $hesk_error_buffer;
 
-	$hesk_error_buffer['attachments'] = $error;
+    $hesk_error_buffer['attachments'] = $error;
 
-	return false;
+    return false;
 } // End hesk_fileError()
 
 
-function hesk_removeAttachments($attachments)
+function hesk_removeAttachments($attachments, $isTicket = true)
 {
-	global $hesk_settings, $hesklang;
+    global $hesk_settings, $hesklang, $modsForHesk_settings;
 
-	$hesk_settings['server_path'] = dirname(dirname(__FILE__)).'/'.$hesk_settings['attach_dir'].'/';
+    $directory = $hesk_settings['attach_dir'];
+    if (!$isTicket) {
+        $directory = $modsForHesk_settings['kb_attach_dir'];
+    }
 
-	foreach ($attachments as $myatt)
-	{
-		hesk_unlink($hesk_settings['server_path'].$myatt['saved_name']);
-	}
+    $hesk_settings['server_path'] = dirname(dirname(__FILE__)) . '/' . $directory . '/';
 
-	return true;
+    foreach ($attachments as $myatt) {
+        hesk_unlink($hesk_settings['server_path'] . $myatt['saved_name']);
+    }
+
+    return true;
 } // End hesk_removeAttachments()
+
+
+function mfh_getTemporaryAttachment($id) {
+    global $hesk_settings;
+
+    $rs = hesk_dbQuery("SELECT * FROM `" . hesk_dbEscape($hesk_settings['db_pfix']) . "temp_attachment` WHERE `id` = " . intval($id));
+    if (hesk_dbNumRows($rs) == 0) {
+        return NULL;
+    }
+    $row = hesk_dbFetchAssoc($rs);
+
+    $info = array(
+        'saved_name' => $row['saved_name'],
+        'real_name' => $row['file_name'],
+        'size' => $row['size']
+    );
+
+    return $info;
+}
+
+
+function mfh_deleteTemporaryAttachment($id) {
+    global $hesk_settings;
+
+    hesk_dbQuery("DELETE FROM `" . hesk_dbEscape($hesk_settings['db_pfix']) . "temp_attachment` WHERE `id` = ".intval($id));
+}

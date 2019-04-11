@@ -1,6 +1,6 @@
 Dear %%NAME%%,
 
-Your support ticket "%%SUBJECT%%" has been updated to a Closed/Resolved status.
+Your support ticket "%%SUBJECT%%" has been updated to a closed/resolved status.
 
 You can view the status of your ticket here:
 %%TRACK_URL%%
