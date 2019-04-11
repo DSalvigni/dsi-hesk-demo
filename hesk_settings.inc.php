@@ -24,7 +24,7 @@ $hesk_settings['db_host']='us-cdbr-iron-east-02.cleardb.net';
 $hesk_settings['db_name']='heroku_7d702b4f3f91579';
 $hesk_settings['db_user']='b48712b13c8a23';
 $hesk_settings['db_pass']='13bd3750';
-$hesk_settings['db_pfix']='dsiheskdemo';
+$hesk_settings['db_pfix']='dsiheskdemo_';
 $hesk_settings['db_vrsn']=0;
 
 
@@ -56,7 +56,7 @@ $hesk_settings['sequential']=1;
 $hesk_settings['time_worked']=1;
 $hesk_settings['spam_notice']=1;
 $hesk_settings['list_users']=0;
-$hesk_settings['debug_mode']=1;
+$hesk_settings['debug_mode']=0;
 $hesk_settings['short_link']=0;
 $hesk_settings['select_cat']=0;
 $hesk_settings['select_pri']=0;
