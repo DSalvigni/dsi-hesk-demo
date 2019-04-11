@@ -4,13 +4,13 @@
 // ==> GENERAL
 
 // --> General settings
-$hesk_settings['site_title']='Website';
-$hesk_settings['site_url']='http://www.example.com';
-$hesk_settings['hesk_title']='Help Desk';
-$hesk_settings['hesk_url']='http://www.example.com/helpdesk';
-$hesk_settings['webmaster_mail']='support@example.com';
+$hesk_settings['site_title']='DSI Demo Help Desk HESK for Airsense';
+$hesk_settings['site_url']='http://dsi-hesk-demo.herokuapp.com';
+$hesk_settings['hesk_title']='DSI Demo Help Desk HESK for Airsense';
+$hesk_settings['hesk_url']='http://dsi-hesk-demo.herokuapp.com';
+$hesk_settings['webmaster_mail']='support@dsi-hesk-demo.herokuapp.com';
 $hesk_settings['noreply_mail']='support@example.com';
-$hesk_settings['noreply_name']='Help Desk';
+$hesk_settings['noreply_name']='DSI Demo HESK';
 
 // --> Language settings
 $hesk_settings['can_sel_lang']=0;
